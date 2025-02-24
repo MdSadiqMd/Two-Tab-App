@@ -31,9 +31,9 @@ const Calculator: React.FC = () => {
         const initCalc = async () => {
             try {
                 await init();
-                setCalculator(new WasmCalculator());
+                const calc = new WasmCalculator();
+                setCalculator(calc);
             } catch (err) {
-                console.error("Failed to initialize WASM:", err);
                 setError("Failed to initialize calculator");
             } finally {
                 setIsLoading(false);
@@ -65,14 +65,26 @@ const Calculator: React.FC = () => {
 
         window.addEventListener("keydown", handleKeyPress);
         return () => window.removeEventListener("keydown", handleKeyPress);
-    }, [display]);
+    }, [display, calculator]);
 
     const handleCalculate = () => {
-        if (!calculator || !display) return;
+        if (!calculator) {
+            setError("Calculator not initialized. Please refresh the page.");
+            return;
+        }
+        if (!display) {
+            return;
+        }
 
         try {
             const result = calculator.evaluate(display);
-            setHistory((prev) => [...prev, `${display} = ${result}`]);
+            const historyEntry = `${display} = ${result}`;
+
+            setHistory(prev => {
+                const updatedHistory = [...prev, historyEntry];
+                return updatedHistory;
+            });
+
             setDisplay(result.toString());
             setError("");
         } catch (err) {
@@ -168,7 +180,12 @@ const Calculator: React.FC = () => {
                         ))}
 
                         <CalculatorButton value="C" onClick={handleClear} variant="secondary" />
-                        <CalculatorButton value="⌫" onClick={handleBackspace} variant="secondary" className="bg-red-500 hover:bg-red-600 text-white" />
+                        <CalculatorButton
+                            value="⌫"
+                            onClick={handleBackspace}
+                            variant="secondary"
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                        />
 
                         <CalculatorButton
                             value="="
@@ -179,9 +196,9 @@ const Calculator: React.FC = () => {
                 </div>
             </Card>
 
-            {history.length > 0 && (
-                <Card className="p-6 shadow-lg w-full sm:w-64 h-min">
-                    <h2 className="text-sm font-medium mb-4">History</h2>
+            <Card className="p-6 shadow-lg w-full sm:w-64 h-min">
+                <h2 className="text-sm font-medium mb-4">History</h2>
+                {history.length > 0 ? (
                     <div className="space-y-2 text-sm text-muted-foreground">
                         {history.slice(-5).map((entry, i) => (
                             <div key={i} className="py-1 border-b border-gray-100 last:border-0">
@@ -189,8 +206,10 @@ const Calculator: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                </Card>
-            )}
+                ) : (
+                    <p className="text-sm text-muted-foreground">No calculations yet</p>
+                )}
+            </Card>
         </div>
     );
 };

@@ -1,5 +1,3 @@
-"use client";
-
 import type React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
@@ -26,7 +24,6 @@ const TextToShader: React.FC = () => {
         setShaderCode("");
         setError("");
         const handlePopState = () => {
-            console.log("Navigation detected, clearing form");
             setPrompt("");
             setShaderCode("");
             setError("");
@@ -61,7 +58,6 @@ const TextToShader: React.FC = () => {
             setShaderCode(response.data.shaderCode);
         } catch (err) {
             setError("Error generating shader. Please try again.");
-            console.error(err);
         } finally {
             setIsLoading(false);
         }
@@ -238,7 +234,6 @@ const TextToShader: React.FC = () => {
                             </Button>
                         )}
                     </div>
-                    {error && <p className="text-red-500">{error}</p>}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <h3 className="text-lg font-semibold">Generated Shader Code:</h3>
@@ -251,12 +246,24 @@ const TextToShader: React.FC = () => {
                         <div className="space-y-2">
                             <h3 className="text-lg font-semibold">Shader Output:</h3>
                             <div className="relative w-full h-[300px]">
-                                <canvas
-                                    ref={canvasRef}
-                                    width={400}
-                                    height={300}
-                                    className="w-full h-full border border-gray-300"
-                                />
+                                {error ? (
+                                    <div className="w-full h-full flex items-center justify-center border border-gray-300">
+                                        <img
+                                            src="/unable_to_generate_image.png"
+                                            alt="Error"
+                                            width={400}
+                                            height={300}
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                ) : (
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={400}
+                                        height={300}
+                                        className="w-full h-full border border-gray-300"
+                                    />
+                                )}
                                 {isLoading && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                                         <div className="text-white flex flex-col items-center">
