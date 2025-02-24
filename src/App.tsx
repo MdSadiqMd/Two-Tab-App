@@ -1,9 +1,10 @@
 import './App.css';
+import CalculatorComponent from './components/caluclator';
 
 function App() {
     return (
         <>
-            <h1 className='text-5xl bg-red-500'>hello</h1>
+            <CalculatorComponent />
         </>
     );
 }

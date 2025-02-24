@@ -14,6 +14,14 @@
             "@/*": [
                 "./src/*"
             ]
-        }
+        },
+        "types": [
+            "vite/client",
+            "node"
+        ],
+        "allowJs": true,
+        "esModuleInterop": true,
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true
     }
 }
