@@ -48,7 +48,7 @@ const TextToShader: React.FC = () => {
         setError("");
 
         try {
-            const response = await axios.post("http://localhost:4000/api/generate-shader",
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/generate-shader`,
                 { prompt },
                 {
                     headers: { "Content-Type": "application/json" }
