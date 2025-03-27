@@ -39,6 +39,15 @@ const TextToShader: React.FC = () => {
         };
     }, []);
 
+    /* const ping = async () => {
+        try {
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/ping`);
+            console.log(response);
+        } catch (error) {
+            console.log(error);
+        }
+    }; */
+
     const generateShader = async () => {
         if (!prompt.trim()) {
             setError("Please enter a prompt");
@@ -64,9 +73,10 @@ const TextToShader: React.FC = () => {
     };
 
     const render = useCallback(() => {
-        if (!programRef.current || !glRef.current) return;
+        if (!programRef.current || !glRef.current || !canvasRef.current) return;
         const gl = glRef.current;
         const program = programRef.current;
+        const canvas = canvasRef.current;
         const timeUniformLocation = timeUniformLocationRef.current;
         const startTime = startTimeRef.current;
 
@@ -79,6 +89,12 @@ const TextToShader: React.FC = () => {
         if (timeUniformLocation) {
             gl.uniform1f(timeUniformLocation, elapsedTime);
         }
+
+        const resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
+        if (resolutionUniformLocation) {
+            gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+        }
+
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         animationFrameRef.current = requestAnimationFrame(render);
     }, []);
@@ -123,7 +139,11 @@ const TextToShader: React.FC = () => {
                 return;
             }
 
-            const vertexShaderSource = shaderParts[0].trim();
+            let vertexShaderSource = shaderParts[0].trim();
+            if (!vertexShaderSource.includes("precision")) {
+                vertexShaderSource = "precision mediump float;\n" + vertexShaderSource;
+            }
+
             const fragmentShaderSource = shaderParts[1].trim();
 
             const compiledVertexShader = createAndCompileShader(gl.VERTEX_SHADER, vertexShaderSource);
@@ -165,6 +185,11 @@ const TextToShader: React.FC = () => {
             gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
             timeUniformLocationRef.current = gl.getUniformLocation(program, "u_time");
+            const resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
+            if (resolutionUniformLocation) {
+                gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+            }
+
             startTimeRef.current = Date.now();
             render();
 
@@ -199,85 +224,91 @@ const TextToShader: React.FC = () => {
     };
 
     return (
-        <Card>
-            <CardContent className="p-6">
-                <div className="space-y-4">
-                    <div className="flex space-x-4">
-                        <Input
-                            type="text"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="Enter your shader prompt"
-                            className="flex-grow"
-                            disabled={isLoading}
-                        />
+        <>
 
-                        <Button
-                            onClick={generateShader}
-                            disabled={isLoading}
-                            className="min-w-[140px]"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Generating...
-                                </>
-                            ) : "Generate Shader"}
-                        </Button>
-                        {shaderCode && (
-                            <Button
-                                variant="outline"
-                                onClick={resetForm}
-                            >
-                                Clear
-                            </Button>
-                        )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">Generated Shader Code:</h3>
-                            <Textarea
-                                value={isLoading ? "Generating shader code..." : shaderCode}
-                                readOnly
-                                className="w-full h-[300px] font-mono text-sm resize-none"
+            <Card>
+                <CardContent className="p-6">
+                    <div className="space-y-4">
+                        <div className="flex space-x-4">
+                            <Input
+                                type="text"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Enter your shader prompt"
+                                className="flex-grow"
+                                disabled={isLoading}
                             />
+
+                            <Button
+                                onClick={generateShader}
+                                disabled={isLoading}
+                                className="min-w-[140px]"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Generating...
+                                    </>
+                                ) : "Generate Shader"}
+                            </Button>
+                            {shaderCode && (
+                                <Button
+                                    variant="outline"
+                                    onClick={resetForm}
+                                >
+                                    Clear
+                                </Button>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">Shader Output:</h3>
-                            <div className="relative w-full h-[300px]">
-                                {error ? (
-                                    <div className="w-full h-full flex items-center justify-center border border-gray-300">
-                                        <img
-                                            src="/unable_to_generate_image.png"
-                                            alt="Error"
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-semibold">Generated Shader Code:</h3>
+                                <Textarea
+                                    value={isLoading ? "Generating shader code..." : shaderCode}
+                                    readOnly
+                                    className="w-full h-[300px] font-mono text-sm resize-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-semibold">Shader Output:</h3>
+                                <div className="relative w-full h-[300px]">
+                                    {error ? (
+                                        <div className="w-full h-full flex items-center justify-center border border-gray-300">
+                                            <img
+                                                src="/unable_to_generate_image.png"
+                                                alt="Error"
+                                                width={400}
+                                                height={300}
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <canvas
+                                            ref={canvasRef}
                                             width={400}
                                             height={300}
-                                            className="object-cover"
+                                            className="w-full h-full border border-gray-300"
                                         />
-                                    </div>
-                                ) : (
-                                    <canvas
-                                        ref={canvasRef}
-                                        width={400}
-                                        height={300}
-                                        className="w-full h-full border border-gray-300"
-                                    />
-                                )}
-                                {isLoading && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                                        <div className="text-white flex flex-col items-center">
-                                            <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                                            <span>Generating shader...</span>
+                                    )}
+                                    {isLoading && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                                            <div className="text-white flex flex-col items-center">
+                                                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                                                <span>Generating shader...</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+            {/* <button onClick={ping}>
+                ping
+            </button> */}
+        </>
     );
 };
 
